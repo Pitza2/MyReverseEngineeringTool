@@ -13,11 +13,9 @@ import java.util.jar.Manifest;
 public class Main {
     public static void main(String[] args) {
 
-        System.out.println("Hello world!");
-        JarProcessor jp = new JarProcessor("EventNotifier.jar");
-        for (var cd : jp.processJar()) {
-            System.out.println(cd);
-        }
+        JarProcessor jp = new JarProcessor("TempSensor.jar");
+        ClassDataProcessor cdp = new ClassDataProcessor(new yumlTool());
+        System.out.println(cdp.processClassData(jp.processJar()));
 
     }
 }

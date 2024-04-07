@@ -53,4 +53,27 @@ public class ClassData {
         return result;
     }
 
+    public String getClassName() {
+        return className;
+    }
+
+    public Pair<String, String>[] getFields() {
+        return fields;
+    }
+
+    public Set<String> getDependencies() {
+        return dependencies;
+    }
+
+    public String getSuperClassName() {
+        return superClassName;
+    }
+
+    public String[] getInterfaceNames() {
+        return interfaceNames;
+    }
+
+    public String[] getMethodNames() {
+        return methodNames;
+    }
 }

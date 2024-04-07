@@ -1,11 +1,15 @@
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.jar.JarFile;
 import java.util.stream.Collectors;
 
@@ -43,32 +47,61 @@ public class JarProcessor {
             String classN;
             String superClassName="";
             String methodNames[];
-            Set<String> fieldTypes;
-            Pair<String,String> fields[];
+            Set<String> dependencies=new java.util.HashSet<String>();
+            Pair[] fields;
             String interfaceNames[];
             if(clazz.getSuperclass()!=null && clazz.getSuperclass()!=Object.class)
-            superClassName=truncatePackage(clazz.getSuperclass().getName());
+            superClassName=clazz.getSuperclass().getName();
 
             methodNames= Arrays.stream(clazz.getDeclaredMethods()).map(x->x.getName()).toArray(String[]::new);
 
-            fieldTypes= Arrays.stream(clazz.getDeclaredFields()).map(x->
-                            truncatePackage(x.getType().getName())).
-                    collect(Collectors.toSet());
 
-            fields=Arrays.stream(clazz.getDeclaredFields())
-                    .map(x->new Pair<String,String>(truncatePackage(x.getType().getName()),x.getName())).
+            for(var field : clazz.getDeclaredFields()) {
+                dependencies.add(field.getGenericType().getTypeName().
+                        replace("<", " of ").
+                        replace(">", "").replace("interface ", ""));
+                if (field.getGenericType() instanceof ParameterizedType) {
+                    ParameterizedType pt = (ParameterizedType) field.getGenericType();
+                    for (var type : pt.getActualTypeArguments()) {
+                        dependencies.add(type.getTypeName().
+                                replace("<", " of ").
+                                replace(">", "").replace("interface ",""));
+                    }
+                }
+            }
+
+//            dependencies= Arrays.stream(clazz.getDeclaredFields()).filter(x->!x.getType().isPrimitive()).map( x ->
+//                    {
+//
+//                        return x.getType().getName();
+//                    }).
+//                    collect(Collectors.toSet());
+//            for(var methods: clazz.getDeclaredMethods()){
+//                for(var vars: methods.getParameters()){
+//                    dependencies.add(vars.getType().getName());
+//                }
+//            }
+//            Set<String> methodDependencies=Arrays.stream(clazz.getDeclaredMethods()).
+//                    flatMap(x->Arrays.stream(getMethodParameterTypesString(x))).collect(Collectors.toSet());
+//            dependencies.addAll(methodDependencies);
+
+            fields=Arrays.stream(clazz.getDeclaredFields()).filter(x->!x.getType().isPrimitive())
+                    .map(x->new Pair<String,String>(x.getGenericType().toString().
+                            replace("<"," of ").
+                            replace(">",""),x.getName())).
                     toArray(Pair[]::new);
-            interfaceNames= Arrays.stream(clazz.getInterfaces()).map(x->truncatePackage(x.getName())).toArray(String[]::new);
-            classN=truncatePackage(className);
-            ClassData cd = new ClassData(classN,superClassName, clazz.isInterface(), methodNames,fieldTypes,interfaceNames,fields);
+            interfaceNames= Arrays.stream(clazz.getInterfaces()).map(x->x.getName()).toArray(String[]::new);
+            classN=className;
+            ClassData cd = new ClassData(classN,superClassName, clazz.isInterface(), methodNames,dependencies,interfaceNames,fields);
             return cd;
         }catch (ClassNotFoundException e){
             System.out.println("Error loading class");
             return null;
         }
     }
-    private String truncatePackage(String className){
-        return className.substring(className.lastIndexOf(".")+1);
+    private String[] getMethodParameterTypesString(Method m){
+        return Arrays.stream(m.getGenericParameterTypes()).map(x->x.toString().
+                replace("<", " of ").
+                replace(">","")).toArray(String[]::new);
     }
-
 }
