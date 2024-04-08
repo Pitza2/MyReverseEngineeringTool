@@ -38,6 +38,27 @@ public class JarProcessor {
             String classPackageName= x.getRealName().replace("/",".").replace(".class","");
             classDataArr.add(getClassData(classPackageName));
         });
+        var packs = getJarPackages();
+        for(var classData: classDataArr){
+            classData.getDependencies().removeIf(x->{
+                String pack;
+                if(x.lastIndexOf(".")==-1){
+                    pack="";
+                }else {
+                    pack = x.substring(0, x.lastIndexOf("."));
+                }
+                return !packs.contains(pack);
+            });
+            classData.getAssociations().removeIf(x->{
+                String pack;
+                if(x.lastIndexOf(".")==-1){
+                    pack="";
+                }else {
+                    pack = x.substring(0, x.lastIndexOf("."));
+                }
+                return !packs.contains(pack);
+            });
+        }
         return classDataArr.toArray(ClassData[]::new);
     }
     private ClassData getClassData(String className){
@@ -46,7 +67,8 @@ public class JarProcessor {
             String classN;
             String superClassName="";
             String methodNames[];
-            Set<String> dependencies=new java.util.HashSet<String>();
+            Set<String> dependencies=new HashSet<String>();
+            Set<String> associations=new HashSet<String>();
             MyField[] fields;
             String interfaceNames[];
             if(clazz.getSuperclass()!=null && clazz.getSuperclass()!=Object.class)
@@ -56,11 +78,16 @@ public class JarProcessor {
 
 
             for(var field : clazz.getDeclaredFields()) {
-                dependencies.addAll(extractTypeData(field.getGenericType()));
+                associations.addAll(extractTypeData(field.getGenericType()));
             }
             for(var met: clazz.getDeclaredMethods()) {
-                for(var field : met.getGenericParameterTypes()){
+                for (var field : met.getGenericParameterTypes()) {
                     dependencies.addAll(extractTypeData(field));
+                }
+                for(var field : met.getParameterTypes()){
+                    if(field.isInterface() && field.getDeclaredMethods().length==0) {
+                        dependencies.remove(field.getName());
+                    }
                 }
             }
 
@@ -71,7 +98,7 @@ public class JarProcessor {
                     toArray(MyField[]::new);
             interfaceNames= Arrays.stream(clazz.getInterfaces()).map(x->x.getName()).toArray(String[]::new);
             classN=className;
-            ClassData cd = new ClassData(classN,superClassName, clazz.isInterface(), methodNames,dependencies,interfaceNames,fields);
+            ClassData cd = new ClassData(classN,superClassName, clazz.isInterface(), methodNames,dependencies,interfaceNames,fields,associations);
             return cd;
         }catch (ClassNotFoundException e){
             System.out.println("Error loading class");
@@ -97,5 +124,30 @@ public class JarProcessor {
             }
         }
         return dep;
+    }
+    Set<String> getJarPackages(){
+        JarFile jf;
+        Set <String> packageNames = new HashSet<String>();
+        try{
+            jf = new JarFile(jarFile);
+        }catch (IOException e){
+            System.out.println("Error opening jar file");
+            return null;
+        }
+        var entries=jf.entries();
+        entries.asIterator().forEachRemaining(x-> {
+            if (!x.getRealName().endsWith(".class")) {
+                return;
+            }
+            String classPackageName = x.getRealName().replace("/", ".").replace(".class", "");
+            if(classPackageName.lastIndexOf(".")==-1){
+                packageNames.add("");
+            }else {
+                classPackageName = classPackageName.substring(0, classPackageName.lastIndexOf("."));
+            }
+            packageNames.add(classPackageName);
+        });
+//        System.out.println("Package names: "+packageNames);
+        return packageNames;
     }
 }

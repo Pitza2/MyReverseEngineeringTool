@@ -13,7 +13,7 @@ import java.util.jar.Manifest;
 public class Main {
     public static void main(String[] args) {
 
-        JarProcessor jp = new JarProcessor("TempSensor.jar");
+        JarProcessor jp = new JarProcessor("EventNotifier.jar");
         ClassDataProcessor cdp = new ClassDataProcessor(new yumlTool());
         System.out.println(cdp.processClassData(jp.processJar()));
 

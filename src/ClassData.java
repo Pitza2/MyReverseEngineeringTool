@@ -1,15 +1,19 @@
+import java.util.ArrayList;
 import java.util.Set;
 public class ClassData {
     private String className;
     private String superClassName;
     private String methodNames[];
     private Set<String> dependencies;
+    private Set<String> associations;
 
     private MyField fields[];
     private String interfaceNames[];
+    private ArrayList<String> jarPackages;
 
     boolean isInterface=false;
-    public ClassData(String className, String superClassName,boolean isInterface, String methodNames[], Set<String> dependencies, String interfaceNames[], MyField fields[]) {
+    boolean isSuperClass=false;
+    public ClassData(String className, String superClassName,boolean isInterface, String methodNames[], Set<String> dependencies, String interfaceNames[], MyField fields[],Set<String> associations) {
         this.className = className;
         this.methodNames = methodNames;
         this.dependencies = dependencies;
@@ -17,6 +21,7 @@ public class ClassData {
         this.interfaceNames = interfaceNames;
         this.superClassName = superClassName;
         this.isInterface=isInterface;
+        this.associations=associations;
     }
 
     public String toString() {
@@ -63,6 +68,10 @@ public class ClassData {
 
     public Set<String> getDependencies() {
         return dependencies;
+    }
+
+    public Set<String> getAssociations() {
+        return associations;
     }
 
     public String getSuperClassName() {

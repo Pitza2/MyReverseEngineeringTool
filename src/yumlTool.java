@@ -38,7 +38,13 @@ public class yumlTool implements UmlTool {
             //add class inheritance
             if(!cd.getSuperClassName().isEmpty())
             sb.append("[").append(truncatePackage(cd.getSuperClassName())).append("]^-[").append(truncatePackage(cd.getClassName())).append("]\n");
+            //add association
+            for(String association : cd.getAssociations()){
+                if(isPrimitive(truncatePackage(association))) continue;
+                sb.append("[").append(truncatePackage(cd.getClassName())).append("]->[").append(truncatePackage(association)).append("]\n");
+            }
             //add dependencies
+            if(!cd.isInterface)
             for(String dependency : cd.getDependencies()){
                 if(isPrimitive(truncatePackage(dependency))) continue;
                 sb.append("[").append(truncatePackage(cd.getClassName())).append("]uses-.->[")
