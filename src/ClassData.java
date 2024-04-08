@@ -5,11 +5,11 @@ public class ClassData {
     private String methodNames[];
     private Set<String> dependencies;
 
-    private Pair<String,String> fields[];
+    private MyField fields[];
     private String interfaceNames[];
 
     boolean isInterface=false;
-    public ClassData(String className, String superClassName,boolean isInterface, String methodNames[], Set<String> dependencies, String interfaceNames[], Pair<String,String> fields[]) {
+    public ClassData(String className, String superClassName,boolean isInterface, String methodNames[], Set<String> dependencies, String interfaceNames[], MyField fields[]) {
         this.className = className;
         this.methodNames = methodNames;
         this.dependencies = dependencies;
@@ -57,7 +57,7 @@ public class ClassData {
         return className;
     }
 
-    public Pair<String, String>[] getFields() {
+    public MyField[] getFields() {
         return fields;
     }
 

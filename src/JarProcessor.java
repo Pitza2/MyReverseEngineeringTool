@@ -1,17 +1,16 @@
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Set;
-import java.util.function.Consumer;
 import java.util.jar.JarFile;
-import java.util.stream.Collectors;
 
 public class JarProcessor {
     private File jarFile;
@@ -48,7 +47,7 @@ public class JarProcessor {
             String superClassName="";
             String methodNames[];
             Set<String> dependencies=new java.util.HashSet<String>();
-            Pair[] fields;
+            MyField[] fields;
             String interfaceNames[];
             if(clazz.getSuperclass()!=null && clazz.getSuperclass()!=Object.class)
             superClassName=clazz.getSuperclass().getName();
@@ -57,39 +56,19 @@ public class JarProcessor {
 
 
             for(var field : clazz.getDeclaredFields()) {
-                dependencies.add(field.getGenericType().getTypeName().
-                        replace("<", " of ").
-                        replace(">", "").replace("interface ", ""));
-                if (field.getGenericType() instanceof ParameterizedType) {
-                    ParameterizedType pt = (ParameterizedType) field.getGenericType();
-                    for (var type : pt.getActualTypeArguments()) {
-                        dependencies.add(type.getTypeName().
-                                replace("<", " of ").
-                                replace(">", "").replace("interface ",""));
-                    }
+                dependencies.addAll(extractTypeData(field.getGenericType()));
+            }
+            for(var met: clazz.getDeclaredMethods()) {
+                for(var field : met.getGenericParameterTypes()){
+                    dependencies.addAll(extractTypeData(field));
                 }
             }
 
-//            dependencies= Arrays.stream(clazz.getDeclaredFields()).filter(x->!x.getType().isPrimitive()).map( x ->
-//                    {
-//
-//                        return x.getType().getName();
-//                    }).
-//                    collect(Collectors.toSet());
-//            for(var methods: clazz.getDeclaredMethods()){
-//                for(var vars: methods.getParameters()){
-//                    dependencies.add(vars.getType().getName());
-//                }
-//            }
-//            Set<String> methodDependencies=Arrays.stream(clazz.getDeclaredMethods()).
-//                    flatMap(x->Arrays.stream(getMethodParameterTypesString(x))).collect(Collectors.toSet());
-//            dependencies.addAll(methodDependencies);
-
-            fields=Arrays.stream(clazz.getDeclaredFields()).filter(x->!x.getType().isPrimitive())
-                    .map(x->new Pair<String,String>(x.getGenericType().toString().
+            fields=Arrays.stream(clazz.getDeclaredFields())
+                    .map(x->new MyField(x.getGenericType().toString().
                             replace("<"," of ").
-                            replace(">",""),x.getName())).
-                    toArray(Pair[]::new);
+                            replace(">",""),x.getName(),x.getModifiers())).
+                    toArray(MyField[]::new);
             interfaceNames= Arrays.stream(clazz.getInterfaces()).map(x->x.getName()).toArray(String[]::new);
             classN=className;
             ClassData cd = new ClassData(classN,superClassName, clazz.isInterface(), methodNames,dependencies,interfaceNames,fields);
@@ -103,5 +82,20 @@ public class JarProcessor {
         return Arrays.stream(m.getGenericParameterTypes()).map(x->x.toString().
                 replace("<", " of ").
                 replace(">","")).toArray(String[]::new);
+    }
+    private Set<String> extractTypeData(Type t){
+        Set<String> dep=new HashSet<>();
+        dep.add(t.getTypeName().
+                replace("<", " of ").
+                replace(">", "").replace("interface ", ""));
+        if (t instanceof ParameterizedType) {
+            ParameterizedType pt = (ParameterizedType) t;
+            for (var type : pt.getActualTypeArguments()) {
+                dep.add(type.getTypeName().
+                        replace("<", " of ").
+                        replace(">", "").replace("interface ",""));
+            }
+        }
+        return dep;
     }
 }

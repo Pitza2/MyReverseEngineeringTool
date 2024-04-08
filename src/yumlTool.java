@@ -1,8 +1,10 @@
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
 
 public class yumlTool implements UmlTool {
     ArrayList<String> primitives =new ArrayList<>(Arrays.asList("int","float","double","long","short","byte","char","boolean","String"));
+    ArrayList<String> primitiveArrays=new ArrayList<>(Arrays.asList("int[]","float[]","double[]","long[]","short[]","byte[]","char[]","boolean[]","String[]"));
     public String Output(ClassData[] classData) {
         StringBuilder sb = new StringBuilder();
         for (ClassData cd :classData){
@@ -11,7 +13,15 @@ public class yumlTool implements UmlTool {
             sb.append("[");
             sb.append(truncatePackage(cd.getClassName()));
             sb.append("|");
-            for(Pair<String,String> field : cd.getFields()){
+            for(MyField field : cd.getFields()){
+
+                if(Modifier.isPrivate(field.getThird()))
+                    sb.append("- ");
+                else if(Modifier.isPublic(field.getThird()))
+                    sb.append("+ ");
+                else if(Modifier.isProtected(field.getThird()))
+                    sb.append("# ");
+
                 sb.append(truncatePackage(field.getFirst())).append(": ")
                         .append(truncatePackage(field.getSecond())).append("; ");
             }
@@ -22,7 +32,7 @@ public class yumlTool implements UmlTool {
             //add Interface inheritance
             for(String interfaceName : cd.getInterfaceNames()){
                 if(!interfaceName.isEmpty())
-                sb.append("[<<").append(truncatePackage(interfaceName)).append(">>]^-.-[")
+                sb.append("[").append(truncatePackage(interfaceName)).append("]^-.-[")
                         .append(truncatePackage(cd.getClassName())).append("]\n");
             }
             //add class inheritance
@@ -30,14 +40,21 @@ public class yumlTool implements UmlTool {
             sb.append("[").append(truncatePackage(cd.getSuperClassName())).append("]^-[").append(truncatePackage(cd.getClassName())).append("]\n");
             //add dependencies
             for(String dependency : cd.getDependencies()){
-                if(primitives.contains(truncatePackage(dependency))) continue;
+                if(isPrimitive(truncatePackage(dependency))) continue;
                 sb.append("[").append(truncatePackage(cd.getClassName())).append("]uses-.->[")
                         .append(truncatePackage(dependency)).append("]\n");
             }
         }
         return sb.toString();
     }
+    boolean isPrimitive(String className){
+
+        return primitives.contains(className) || primitiveArrays.contains(className);
+    }
     private String truncatePackage(String className){
         return className.substring(className.lastIndexOf(".")+1);
+    }
+    private void removeRedundantDependencies(){
+
     }
 }
